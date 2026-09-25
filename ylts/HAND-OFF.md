@@ -64,7 +64,7 @@ ci/
 | NSIS installers | Done | Both compile with `makensis` using placeholder payloads. **Never run on Windows.** |
 | GitHub Actions build | Written, not run | `ci/ylts-windows.yml`. Branding anchors re-checked against tag 1.5.0. |
 | Code signing | **Not started** | n/a |
-| Real YLTS logo | **Not done**: placeholder mark | n/a |
+| Real YLTS logo | Done | Square mark from https://ylts.com.au/media/branding/ico-dk-SA8mit.png in `branding/logo-square.png`; icons regenerated; portal `icon.svg` uses the brand vector mark. |
 
 ## Remaining work (in order)
 
