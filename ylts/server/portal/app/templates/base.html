@@ -37,5 +37,10 @@
   {% for kind, msg in flashes %}<div class="flash {{ kind }}">{{ msg }}</div>{% endfor %}
   {% block content %}{% endblock %}
 </main>
+<footer class="contact">
+  <a href="tel:{{ settings.support_phone | replace(' ', '') }}">{{ settings.support_phone }}</a>
+  · <a href="mailto:{{ settings.support_email }}">{{ settings.support_email }}</a>
+  · <a href="{{ settings.support_url }}">ylts.com.au</a>
+</footer>
 </body>
 </html>

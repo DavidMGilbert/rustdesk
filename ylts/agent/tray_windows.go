@@ -428,15 +428,10 @@ func (t *tray) showMenu() {
 	appendItem(menu, 0, state, mfString|mfGrayed)
 	pAppendMenuW.Call(menu, mfSeparator, 0, 0)
 	appendItem(menu, cmdHelp, "Request help from "+t.companyShort()+"…", mfString|mfDefault)
-	if st.SupportPhone != "" {
-		appendItem(menu, cmdCall, "Call us: "+st.SupportPhone, mfString)
-	}
-	if st.SupportEmail != "" {
-		appendItem(menu, cmdEmail, "Email us: "+st.SupportEmail, mfString)
-	}
-	if st.SupportURL != "" {
-		appendItem(menu, cmdWebsite, "Visit "+strings.TrimPrefix(strings.TrimPrefix(st.SupportURL, "https://"), "http://"), mfString)
-	}
+	phone, email, site := t.contact()
+	appendItem(menu, cmdCall, "Call us: "+phone, mfString)
+	appendItem(menu, cmdEmail, "Email us: "+email, mfString)
+	appendItem(menu, cmdWebsite, "Visit "+strings.TrimPrefix(strings.TrimPrefix(site, "https://"), "http://"), mfString)
 	pAppendMenuW.Call(menu, mfSeparator, 0, 0)
 	flags := uint32(mfString)
 	if fileExists(t.paths.ApprovalFlag()) {
@@ -458,8 +453,23 @@ func shellOpen(target string) {
 	pShellExecuteW.Call(0, uintptr(unsafe.Pointer(utf16("open"))), uintptr(unsafe.Pointer(utf16(target))), 0, 0, swShow)
 }
 
+func (t *tray) contact() (phone, email, site string) {
+	phone, email, site = t.status.SupportPhone, t.status.SupportEmail, t.status.SupportURL
+	if phone == "" {
+		phone = "0483 866 665"
+	}
+	if email == "" {
+		email = "hello@ylts.com.au"
+	}
+	if site == "" {
+		site = "https://ylts.com.au"
+	}
+	return
+}
+
 func (t *tray) handle(cmd int) {
 	st := t.status
+	phone, email, site := t.contact()
 	switch cmd {
 	case cmdCopyID:
 		if setClipboard(formatID(st.RustDeskID)) {
@@ -468,16 +478,16 @@ func (t *tray) handle(cmd int) {
 	case cmdHelp:
 		go t.requestHelp()
 	case cmdCall:
-		shellOpen("tel:" + strings.ReplaceAll(st.SupportPhone, " ", ""))
+		shellOpen("tel:" + strings.ReplaceAll(phone, " ", ""))
 	case cmdEmail:
 		subject := "Help needed"
 		if st.DeviceLabel != "" {
 			subject += " - " + st.DeviceLabel
 		}
-		shellOpen("mailto:" + st.SupportEmail + "?subject=" + strings.ReplaceAll(subject, " ", "%20"))
+		shellOpen("mailto:" + email + "?subject=" + strings.ReplaceAll(subject, " ", "%20"))
 	case cmdWebsite:
-		if strings.HasPrefix(st.SupportURL, "https://") || strings.HasPrefix(st.SupportURL, "http://") {
-			shellOpen(st.SupportURL)
+		if strings.HasPrefix(site, "https://") || strings.HasPrefix(site, "http://") {
+			shellOpen(site)
 		}
 	case cmdApproval:
 		on := !fileExists(t.paths.ApprovalFlag())

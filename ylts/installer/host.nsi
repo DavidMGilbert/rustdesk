@@ -47,9 +47,9 @@ VIAddVersionKey "LegalCopyright" "${COMPANY}"
 !define MUI_WELCOMEFINISHPAGE_BITMAP "${PAYLOAD}\installer-side.bmp"
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TITLE "YLTS Remote Support"
-!define MUI_WELCOMEPAGE_TEXT "This installs YLTS Remote Support so ${COMPANY} can help you with this computer.$\r$\n$\r$\nWhat it does:$\r$\n  - Adds a YLTS icon near the clock with your Support ID$\r$\n  - Lets your YLTS technician connect to fix problems, including when you're away$\r$\n  - Shows a window whenever a technician is connected$\r$\n$\r$\nYou can require on-screen approval for every session from the YLTS icon, and uninstall at any time from Settings > Apps."
+!define MUI_WELCOMEPAGE_TEXT "This installs YLTS Remote Support so ${COMPANY} can help you with this computer.$\r$\n$\r$\nWhat it does:$\r$\n  - Adds a YLTS icon near the clock with your Support ID$\r$\n  - Lets your YLTS technician connect to fix problems, including when you're away$\r$\n  - Shows a window whenever a technician is connected$\r$\n$\r$\nYou can require on-screen approval for every session from the YLTS icon, and uninstall at any time from Settings > Apps.$\r$\n$\r$\nPhone 0483 866 665$\r$\nhello@ylts.com.au$\r$\nylts.com.au"
 !define MUI_FINISHPAGE_TITLE "YLTS Remote Support is ready"
-!define MUI_FINISHPAGE_TEXT "Look for the YLTS icon near the clock (you may need to click the ^ arrow). Right-click it to see your Support ID or to ask us for help."
+!define MUI_FINISHPAGE_TEXT "Look for the YLTS icon near the clock (you may need to click the ^ arrow). Right-click it to see your Support ID or to ask us for help.$\r$\n$\r$\nPhone 0483 866 665 · hello@ylts.com.au · ylts.com.au"
 
 Var EnrolToken
 Var TokenField

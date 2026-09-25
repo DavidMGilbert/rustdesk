@@ -26,9 +26,9 @@ class Settings:
     bootstrap_admin_user: str = field(default_factory=lambda: _env("BOOTSTRAP_ADMIN_USER", "admin"))
     bootstrap_admin_password: str = field(default_factory=lambda: _env("BOOTSTRAP_ADMIN_PASSWORD"))
     company_name: str = field(default_factory=lambda: _env("COMPANY_NAME", "Your Local Tech Solutions"))
-    support_phone: str = field(default_factory=lambda: _env("SUPPORT_PHONE", ""))
-    support_email: str = field(default_factory=lambda: _env("SUPPORT_EMAIL", ""))
-    support_url: str = field(default_factory=lambda: _env("SUPPORT_URL", "https://www.ylts.com.au"))
+    support_phone: str = field(default_factory=lambda: _env("SUPPORT_PHONE", "0483 866 665"))
+    support_email: str = field(default_factory=lambda: _env("SUPPORT_EMAIL", "hello@ylts.com.au"))
+    support_url: str = field(default_factory=lambda: _env("SUPPORT_URL", "https://ylts.com.au"))
     # RustDesk client access tokens (technician logins) expire after this many days.
     token_days: int = field(default_factory=lambda: int(_env("TOKEN_DAYS", "30")))
     # Agents re-apply the device password this often even without changes (hours).

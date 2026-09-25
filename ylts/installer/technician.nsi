@@ -32,7 +32,7 @@ VIAddVersionKey "LegalCopyright" "${COMPANY}"
 !define MUI_ICON "${PAYLOAD}\ylts.ico"
 !define MUI_WELCOMEFINISHPAGE_BITMAP "${PAYLOAD}\installer-side.bmp"
 !define MUI_WELCOMEPAGE_TITLE "YLTS Technician"
-!define MUI_WELCOMEPAGE_TEXT "Installs the YLTS Technician app for connecting to client computers.$\r$\n$\r$\nAfter installing, sign in with your YLTS Portal account (menu next to your ID > Log in). The client computers you've been given access to appear in the Address Book tab, one book per client."
+!define MUI_WELCOMEPAGE_TEXT "Installs the YLTS Technician app for connecting to client computers.$\r$\n$\r$\nAfter installing, sign in with your YLTS Portal account (menu next to your ID > Log in). Computers you can reach are listed under Accessible devices. Computers on the same network also appear under Discovered.$\r$\n$\r$\nPhone 0483 866 665 · hello@ylts.com.au · ylts.com.au"
 !define MUI_FINISHPAGE_RUN "$PROGRAMFILES64\${APP}\${APP}.exe"
 !define MUI_FINISHPAGE_RUN_TEXT "Open YLTS Technician now"
 

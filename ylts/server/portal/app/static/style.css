@@ -81,4 +81,5 @@ ul.columns { columns: 3 220px; }
 .qr { background: #fff; display: inline-block; padding: .6rem; border-radius: 8px; } .qr svg { width: 200px; height: 200px; display: block; }
 .danger-zone { border-top: 1px solid var(--line); padding-top: 1.2rem; }
 details > summary { cursor: pointer; font-weight: 600; }
+footer.contact { text-align: center; color: var(--muted); font-size: .9rem; padding: 0 1.2rem 1.6rem; }
 @media (max-width: 700px) { .grid { display: block; overflow-x: auto; } .topbar { gap: .6rem; } }

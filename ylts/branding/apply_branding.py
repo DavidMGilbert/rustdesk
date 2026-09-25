@@ -91,6 +91,60 @@ def patch_loader(root: Path) -> None:
          f"    let Ok(data) = // {MARK}\n        serde_json::from_slice::<std::collections::HashMap<String, serde_json::Value>>(&data)")
 
 
+def patch_ui(root: Path) -> None:
+    """Replace the user-visible RustDesk name, copyright and website in the desktop app."""
+    about = root / "flutter/lib/desktop/pages/desktop_setting_page.dart"
+    edit(about, "child: _Card(title: translate('About RustDesk'), children: [",
+         "child: _Card(title: 'About ${bind.mainGetAppNameSync()}', children: [ // " + MARK)
+    edit(about, """              InkWell(
+                  onTap: () {
+                    launchUrlString('https://rustdesk.com/privacy.html');
+                  },
+                  child: Text(
+                    translate('Privacy Statement'),
+                    style: linkStyle,
+                  ).marginSymmetric(vertical: 4.0)),
+              InkWell(
+                  onTap: () {
+                    launchUrlString('https://rustdesk.com');
+                  },
+                  child: Text(
+                    translate('Website'),
+                    style: linkStyle,
+                  ).marginSymmetric(vertical: 4.0)),""",
+         """              SelectionArea(
+                  child: const Text('Phone: 0483 866 665')
+                      .marginSymmetric(vertical: 4.0)),
+              InkWell(
+                  onTap: () {
+                    launchUrlString('mailto:hello@ylts.com.au');
+                  },
+                  child: const Text(
+                    'hello@ylts.com.au',
+                    style: linkStyle,
+                  ).marginSymmetric(vertical: 4.0)),
+              InkWell(
+                  onTap: () {
+                    launchUrlString('https://ylts.com.au');
+                  },
+                  child: const Text(
+                    'ylts.com.au',
+                    style: linkStyle,
+                  ).marginSymmetric(vertical: 4.0)), // """ + MARK)
+    edit(about,
+         "'Copyright © ${DateTime.now().toString().substring(0, 4)} Purslane Tech Pte. Ltd.\\n$license',",
+         "'Copyright © ${DateTime.now().toString().substring(0, 4)} Your Local Tech Solutions\\n$license', // " + MARK)
+    title = root / "flutter/lib/desktop/widgets/tabbar_widget.dart"
+    edit(title, """                            child: const Text(
+                              "RustDesk",
+                              style: TextStyle(fontSize: 13),
+                            ).marginOnly(left: 2))""",
+         """                            child: Text(
+                              bind.mainGetAppNameSync(),
+                              style: const TextStyle(fontSize: 13),
+                            ).marginOnly(left: 2)) // """ + MARK)
+
+
 def replace_icons(root: Path) -> None:
     gen = HERE / "generated"
     if not (gen / "ylts.ico").exists():
@@ -148,6 +202,7 @@ def main() -> None:
         sys.exit("[branding] --key doesn't look like an hbbs public key")
     patch_config(root, a.host.strip(), a.key.strip())
     patch_loader(root)
+    patch_ui(root)
     replace_icons(root)
     print("[branding] done")
 

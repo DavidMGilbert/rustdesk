@@ -1,6 +1,7 @@
 {
   "app-name": "YLTS-Remote-Host",
   "conn-type": "incoming",
+  "disable-account": "Y",
   "override-settings": {
     "custom-rendezvous-server": "{{HOST}}",
     "relay-server": "{{HOST}}:21117",

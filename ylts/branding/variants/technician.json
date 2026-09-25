@@ -6,7 +6,7 @@
     "relay-server": "{{HOST}}:21117",
     "api-server": "https://{{HOST}}",
     "key": "{{KEY}}",
-    "enable-lan-discovery": "N",
+    "enable-lan-discovery": "Y",
     "enable-check-update": "N",
     "allow-auto-update": "N",
     "hide-network-settings": "Y",
@@ -14,9 +14,9 @@
     "hide-proxy-settings": "Y",
     "hide-websocket-settings": "Y",
     "hide-help-cards": "Y",
-    "disable-discovery-panel": "Y"
+    "disable-discovery-panel": "N"
   },
   "default-settings": {
-    "peer-tab-index": "3"
+    "peer-tab-index": "4"
   }
 }
