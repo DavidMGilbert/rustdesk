@@ -1,5 +1,5 @@
 {
-  "app-name": "YLTS Technician",
+  "app-name": "YLTS-Technician",
   "conn-type": "outgoing",
   "override-settings": {
     "custom-rendezvous-server": "{{HOST}}",

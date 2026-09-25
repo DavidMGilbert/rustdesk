@@ -13,13 +13,13 @@ SetCompressor /SOLID lzma
   !define PAYLOAD "payload"
 !endif
 !define COMPANY "Your Local Tech Solutions"
-!define APP "YLTS Technician"
+!define APP "YLTS-Technician"
 
 !include MUI2.nsh
 !include LogicLib.nsh
 !include x64.nsh
 
-Name "${APP}"
+Name "YLTS Technician"
 OutFile "YLTS-Technician-Setup.exe"
 BrandingText "${COMPANY}"
 VIProductVersion "${VERSION}.0"
@@ -31,10 +31,10 @@ VIAddVersionKey "LegalCopyright" "${COMPANY}"
 
 !define MUI_ICON "${PAYLOAD}\ylts.ico"
 !define MUI_WELCOMEFINISHPAGE_BITMAP "${PAYLOAD}\installer-side.bmp"
-!define MUI_WELCOMEPAGE_TITLE "${APP}"
+!define MUI_WELCOMEPAGE_TITLE "YLTS Technician"
 !define MUI_WELCOMEPAGE_TEXT "Installs the YLTS Technician app for connecting to client computers.$\r$\n$\r$\nAfter installing, sign in with your YLTS Portal account (menu next to your ID > Log in). The client computers you've been given access to appear in the Address Book tab, one book per client."
 !define MUI_FINISHPAGE_RUN "$PROGRAMFILES64\${APP}\${APP}.exe"
-!define MUI_FINISHPAGE_RUN_TEXT "Open ${APP} now"
+!define MUI_FINISHPAGE_RUN_TEXT "Open YLTS Technician now"
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_INSTFILES

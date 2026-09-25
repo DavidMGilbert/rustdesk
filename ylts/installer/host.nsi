@@ -21,7 +21,7 @@ SetCompressor /SOLID lzma
   !define PAYLOAD "payload"
 !endif
 !define COMPANY "Your Local Tech Solutions"
-!define HOST_APP "YLTS Remote Host"
+!define HOST_APP "YLTS-Remote-Host"
 !define AGENT_DIR "YLTS Agent"
 !define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\YLTS Remote"
 

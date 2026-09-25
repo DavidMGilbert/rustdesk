@@ -108,7 +108,7 @@ Use a clean Windows 10 and Windows 11 VM:
 Things most likely to need fixing on first run:
 
 - whether `--get-id` and `--password` print to stdout when called from a service;
-- the host's install path, which assumes `C:\Program Files\YLTS Remote Host\YLTS Remote Host.exe`;
+- the host's install path, which assumes `C:\Program Files\YLTS-Remote-Host\YLTS-Remote-Host.exe`;
 - tray behaviour with a high-DPI display or multiple monitors.
 
 ### 4. Before rollout

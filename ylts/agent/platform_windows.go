@@ -28,7 +28,7 @@ func defaultDataDir() string {
 }
 
 func defaultHostExe() string {
-	const app = "YLTS Remote Host"
+	const app = "YLTS-Remote-Host"
 	if k, err := registry.OpenKey(registry.LOCAL_MACHINE,
 		`SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\`+app, registry.QUERY_VALUE); err == nil {
 		defer k.Close()

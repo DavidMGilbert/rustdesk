@@ -1,5 +1,5 @@
 {
-  "app-name": "YLTS Quick Support",
+  "app-name": "YLTS-Quick-Support",
   "conn-type": "incoming",
   "override-settings": {
     "custom-rendezvous-server": "{{HOST}}",

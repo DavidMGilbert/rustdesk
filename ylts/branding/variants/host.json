@@ -1,5 +1,5 @@
 {
-  "app-name": "YLTS Remote Host",
+  "app-name": "YLTS-Remote-Host",
   "conn-type": "incoming",
   "override-settings": {
     "custom-rendezvous-server": "{{HOST}}",

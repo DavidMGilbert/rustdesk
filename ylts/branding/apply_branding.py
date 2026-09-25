@@ -121,7 +121,12 @@ def render_variants(host: str, key: str, out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
     for src in sorted((HERE / "variants").glob("*.json")):
         text = src.read_text(encoding="utf-8").replace("{{HOST}}", host).replace("{{KEY}}", key)
-        json.loads(text)  # validate
+        data = json.loads(text)  # validate
+        # RustDesk 1.5 refuses to install unless the name is [A-Za-z0-9-]+. A space
+        # makes --silent-install fail before any files are copied.
+        app_name = data.get("app-name", "")
+        if not isinstance(app_name, str) or not re.fullmatch(r"[A-Za-z0-9-]+", app_name):
+            sys.exit(f"[branding] {src.name}: app-name must match [A-Za-z0-9-]+, got {app_name!r}")
         (out / f"ylts-{src.stem}.json").write_text(text, encoding="utf-8")
         print(f"[branding] variant {src.stem}")
 
