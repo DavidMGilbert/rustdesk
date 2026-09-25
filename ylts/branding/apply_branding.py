@@ -164,6 +164,16 @@ reg add {subkey} /f""",
 reg add {subkey} /f""")
     edit(install, "        copy_exe = copy_exe_cmd(&src_exe, &exe, &path)?,\n        import_config = get_import_config(&exe),",
          "        copy_exe = copy_exe_cmd(&src_exe, &exe, &path)?,\n        rename_exe = rename_exe_cmd(&src_exe, &path)?, // " + MARK + "\n        import_config = get_import_config(&exe),")
+    # Signed-in clients wait for hbbs to start a key exchange. The open-source
+    # server never does, so the wait ends as "Failed to secure tcp: deadline has elapsed".
+    edit(root / "src/common.rs",
+         "    match timeout(READ_TIMEOUT, conn.next()).await? {\n        Some(Ok(bytes)) => {",
+         "    let first = match timeout(std::time::Duration::from_millis(1500), conn.next()).await {\n"
+         "        Ok(msg) => msg,\n"
+         "        Err(_) => return Ok(false), // " + MARK + "\n"
+         "    };\n"
+         "    match first {\n"
+         "        Some(Ok(bytes)) => {")
 
 
 def replace_icons(root: Path) -> None:
