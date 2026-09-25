@@ -143,6 +143,27 @@ def patch_ui(root: Path) -> None:
                               bind.mainGetAppNameSync(),
                               style: const TextStyle(fontSize: 13),
                             ).marginOnly(left: 2)) // """ + MARK)
+    home = root / "flutter/lib/desktop/pages/desktop_home_page.dart"
+    edit(home, """          if (isOutgoingOnly)
+            Text(
+              translate("outgoing_only_desk_tip"),
+              overflow: TextOverflow.clip,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),""",
+         "          // " + MARK + "\n")
+    logo = root / "flutter/lib/common.dart"
+    edit(logo, "constraints: BoxConstraints(maxWidth: 300, maxHeight: 60),",
+         "constraints: const BoxConstraints(maxWidth: 250, maxHeight: 88), // " + MARK)
+    install = root / "src/platform/windows.rs"
+    edit(install, """md \\"{path}\\"
+{copy_exe}
+reg add {subkey} /f""",
+         """md \\"{path}\\"
+{copy_exe}
+{rename_exe}
+reg add {subkey} /f""")
+    edit(install, "        copy_exe = copy_exe_cmd(&src_exe, &exe, &path)?,\n        import_config = get_import_config(&exe),",
+         "        copy_exe = copy_exe_cmd(&src_exe, &exe, &path)?,\n        rename_exe = rename_exe_cmd(&src_exe, &path)?, // " + MARK + "\n        import_config = get_import_config(&exe),")
 
 
 def replace_icons(root: Path) -> None:
@@ -165,6 +186,13 @@ def replace_icons(root: Path) -> None:
         if p.exists():
             shutil.copyfile(gen / src, p)
             print(f"[branding] icon {dst}")
+    assets = root / "flutter/assets"
+    for name in ("logo.png", "logo_light.png", "logo_dark.png"):
+        src = gen / name
+        if not src.exists():
+            sys.exit(f"[branding] missing {src}")
+        shutil.copyfile(src, assets / name)
+        print(f"[branding] wordmark {name}")
     svg = root / "flutter/assets/icon.svg"
     if svg.exists():
         shutil.copyfile(HERE.parent / "server/portal/app/static/icon.svg", svg)

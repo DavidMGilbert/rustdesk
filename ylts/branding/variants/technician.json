@@ -14,6 +14,7 @@
     "hide-proxy-settings": "Y",
     "hide-websocket-settings": "Y",
     "hide-help-cards": "Y",
+    "hide-powered-by-me": "Y",
     "disable-discovery-panel": "N"
   },
   "default-settings": {

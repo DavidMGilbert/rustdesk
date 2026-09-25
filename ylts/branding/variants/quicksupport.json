@@ -20,6 +20,7 @@
     "hide-server-settings": "Y",
     "hide-proxy-settings": "Y",
     "hide-websocket-settings": "Y",
-    "hide-help-cards": "Y"
+    "hide-help-cards": "Y",
+    "hide-powered-by-me": "Y"
   }
 }

@@ -19,6 +19,7 @@
     "hide-proxy-settings": "Y",
     "hide-websocket-settings": "Y",
     "hide-help-cards": "Y",
+    "hide-powered-by-me": "Y",
     "hide-tray": "Y",
     "allow-hide-cm": "N"
   },
