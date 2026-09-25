@@ -1,0 +1,53 @@
+# YLTS Remote Support server: RustDesk ID/relay servers + YLTS Portal behind Caddy (automatic HTTPS).
+# Usage: cp .env.example .env && edit, then: docker compose up -d
+name: ylts-remote
+
+services:
+  hbbs:
+    image: rustdesk/rustdesk-server:latest
+    # -k _ : only clients built with this server's key may register or connect
+    command: hbbs -r ${RUSTDESK_HOST}:21117 -k _
+    ports:
+      - "21115:21115"
+      - "21116:21116"
+      - "21116:21116/udp"
+    volumes:
+      - ./data/rustdesk:/root
+    depends_on: [hbbr]
+    restart: unless-stopped
+
+  hbbr:
+    image: rustdesk/rustdesk-server:latest
+    command: hbbr -k _
+    ports:
+      - "21117:21117"
+    volumes:
+      - ./data/rustdesk:/root
+    restart: unless-stopped
+
+  portal:
+    build: ./portal
+    env_file: .env
+    environment:
+      PORTAL_DATA_DIR: /data
+      RUSTDESK_KEY_FILE: /rustdesk-data/id_ed25519.pub
+      PORTAL_PUBLIC_URL: https://${RUSTDESK_HOST}
+    volumes:
+      - ./data/portal:/data
+      - ./data/rustdesk:/rustdesk-data:ro
+    expose: ["8000"]
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      RUSTDESK_HOST: ${RUSTDESK_HOST}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy:/data
+    depends_on: [portal]
+    restart: unless-stopped

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<h1>Audit log</h1>
+<form method="get" class="inline-form">
+  <label>Type<select name="kind">
+    <option value="">Everything</option>
+    {% for k, lbl in [('conn','Remote sessions'),('file','File transfers'),('login','Technician app sign-ins'),('portal','Portal sign-ins'),('password','Passwords'),('grant','Access changes'),('help','Help requests'),('enrol','Enrolment'),('device','Devices'),('user','Staff accounts'),('security','Security alerts')] %}
+    <option value="{{ k }}" {{ 'selected' if kind == k }}>{{ lbl }}</option>{% endfor %}</select></label>
+  <label>Device ID<input name="device" value="{{ device }}"></label>
+  <label>Person<input name="actor" value="{{ actor }}"></label>
+  <button>Filter</button>
+</form>
+<table class="grid small"><thead><tr><th>When</th><th>Event</th><th>Who</th><th>Device</th><th>IP</th><th>Detail</th></tr></thead><tbody>
+{% for e in events %}<tr><td class="nowrap">{{ e.ts|local }}</td><td><span class="kind">{{ e.kind }}</span></td><td>{{ e.actor }}</td>
+<td>{% if e.device_rustdesk_id %}<a href="/audit?device={{ e.device_rustdesk_id }}">{{ names.get(e.device_rustdesk_id, e.device_rustdesk_id) }}</a>{% endif %}</td>
+<td>{{ e.ip }}</td><td class="detail">{{ e.detail }}</td></tr>
+{% else %}<tr><td colspan="6" class="muted">No events.</td></tr>{% endfor %}</tbody></table>
+<p>{% if page > 1 %}<a href="?kind={{ kind }}&device={{ device }}&actor={{ actor }}&page={{ page - 1 }}">← Newer</a>{% endif %}
+{% if more %} <a href="?kind={{ kind }}&device={{ device }}&actor={{ actor }}&page={{ page + 1 }}">Older →</a>{% endif %}</p>
+{% endblock %}

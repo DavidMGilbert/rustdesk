@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf_field with context %}
+{% block title %}Technicians{% endblock %}
+{% block content %}
+<h1>Technicians</h1>
+<details class="card" {{ 'open' if not users|length > 1 }}><summary>Add a technician</summary>
+<form method="post" action="/technicians" class="grid-form">{{ csrf_field() }}
+  <label>Username<input name="username" required autocomplete="off" placeholder="jsmith"></label>
+  <label>Full name<input name="display_name" placeholder="Jo Smith"></label>
+  <label>Email<input name="email" type="email"></label>
+  <label>Temporary password (12+)<input name="password" type="password" minlength="12" required autocomplete="new-password"></label>
+  <label class="check"><input type="checkbox" name="require_2fa" value="1" checked> Require two-factor</label>
+  <label class="check"><input type="checkbox" name="is_admin" value="1"> Administrator (can reach every device and manage the portal)</label>
+  <button>Add technician</button>
+</form></details>
+<table class="grid">
+<thead><tr><th>Name</th><th>Username</th><th>Role</th><th>2FA</th><th>Teams</th><th>Last sign-in</th></tr></thead>
+<tbody>{% for u in users %}
+<tr class="{{ 'dim' if not u.active }}"><td><a href="/technicians/{{ u.id }}"><b>{{ u.label }}</b></a></td><td>{{ u.username }}</td>
+<td>{% if not u.active %}<span class="pill grey">Disabled</span>{% elif u.is_admin %}<span class="pill blue">Admin</span>{% else %}Technician{% endif %}</td>
+<td>{% if u.has_2fa %}<span class="pill green">On</span>{% elif u.require_2fa %}<span class="pill amber">Required, not set up</span>{% else %}<span class="pill grey">Off</span>{% endif %}</td>
+<td>{{ u.teams|map(attribute='name')|join(', ') }}</td><td>{{ u.last_login|ago }}</td></tr>
+{% endfor %}</tbody></table>
+{% endblock %}

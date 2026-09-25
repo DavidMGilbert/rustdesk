@@ -1,0 +1,4 @@
+# RustDesk's root .gitignore excludes *.png and *.svg. Keep the YLTS brand files.
+!branding/logo-square.png
+!branding/generated/*.png
+!server/portal/app/static/icon.svg

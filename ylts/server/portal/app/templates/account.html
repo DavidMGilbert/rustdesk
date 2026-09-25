@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf_field with context %}
+{% block title %}My account{% endblock %}{% block mainclass %}narrow{% endblock %}
+{% block content %}
+<h1>My account</h1>
+<section class="card">
+  <h2>Two-factor authentication</h2>
+  {% if user.has_2fa %}
+    <p><span class="pill green">On</span> You'll be asked for a code when signing in here and in the YLTS Technician app.</p>
+    {% if not user.require_2fa %}
+    <form method="post" action="/account/2fa/disable" class="inline-form">{{ csrf_field() }}
+      <label>Password<input type="password" name="password" required></label>
+      <button class="danger">Turn off</button></form>
+    {% endif %}
+  {% elif setup_secret %}
+    <p>Scan this with Google Authenticator, Microsoft Authenticator, 1Password or similar, then enter the code it shows.</p>
+    <div class="qr">{{ qr_svg|safe }}</div>
+    <p class="muted small">Can't scan? Enter this key: <code>{{ setup_secret }}</code></p>
+    <form method="post" action="/account/2fa/confirm" class="inline-form">{{ csrf_field() }}
+      <label>Code<input name="code" inputmode="numeric" autocomplete="one-time-code" required autofocus></label>
+      <button>Turn on</button></form>
+  {% else %}
+    <p><span class="pill amber">Off</span> Strongly recommended: your account can reach client computers.</p>
+    <form method="post" action="/account/2fa/start">{{ csrf_field() }}<button>Set up two-factor</button></form>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>Change password</h2>
+  <form method="post" action="/account/password" class="stack">{{ csrf_field() }}
+    <label>Current password<input type="password" name="current" autocomplete="current-password" required></label>
+    <label>New password (12+ characters)<input type="password" name="new" autocomplete="new-password" minlength="12" required></label>
+    <label>Confirm new password<input type="password" name="confirm" autocomplete="new-password" minlength="12" required></label>
+    <button>Change password</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% from "_macros.html" import status with context %}
+{% block title %}My devices{% endblock %}
+{% block content %}
+<h1>Devices you can reach</h1>
+<p class="muted">These appear in the YLTS Technician app's address book, one book per client. Double-click a device there to connect; you won't be asked for a password.</p>
+<table class="grid">
+<thead><tr><th>Device</th><th>Client</th><th>ID</th><th>User</th><th>Status</th></tr></thead>
+<tbody>
+{% for d in devices %}
+<tr><td><b>{{ d.label }}</b>{% if d.alias and d.hostname %}<div class="muted small">{{ d.hostname }}</div>{% endif %}</td>
+<td>{{ d.client.name if d.client else '—' }}</td><td><code>{{ d.rustdesk_id }}</code></td><td>{{ d.os_username }}</td><td>{{ status(d, now) }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">You haven't been given access to any devices yet. Ask an administrator.</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf_field with context %}
+{% block title %}Enrolment{% endblock %}
+{% block content %}
+<h1>Enrolment tokens</h1>
+<p class="muted">The host installer uses a token to register a PC and place it under the right client. Tokens only allow enrolling; they can't be used to connect.</p>
+{% include "_new_token.html" %}
+<form method="post" action="/enrolment" class="grid-form card">{{ csrf_field() }}
+  <label>Client<select name="client_id"><option value="">Unassigned (sort later)</option>{% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></label>
+  <label>Label<input name="label" placeholder="e.g. Walk-in customers"></label>
+  <label>Max installs<input name="uses" inputmode="numeric" placeholder="Unlimited"></label>
+  <label>Valid for<select name="expiry" data-custom-toggle><option value="1d">1 day</option><option value="7d">7 days</option><option value="30d" selected>30 days</option><option value="never">No expiry</option><option value="custom">Pick a date…</option></select>
+    <input type="datetime-local" name="expiry_custom" class="custom-date" hidden></label>
+  <button>Create token</button>
+</form>
+<table class="grid"><thead><tr><th>Token</th><th>Client</th><th>Label</th><th>Installs left</th><th>Expires</th><th>Status</th><th></th></tr></thead><tbody>
+{% for t in tokens %}<tr><td><code>{{ t.token_hint }}…</code></td><td>{{ t.client.name if t.client else 'Unassigned' }}</td><td>{{ t.label }}</td>
+<td>{{ 'Unlimited' if t.uses_left is none else t.uses_left }}</td><td>{{ t.expires_at|local if t.expires_at else 'Never' }}</td>
+<td>{% if t.usable(now) %}<span class="pill green">Active</span>{% elif t.revoked %}<span class="pill grey">Revoked</span>{% else %}<span class="pill grey">Used up / expired</span>{% endif %}</td>
+<td class="right">{% if t.usable(now) %}<form method="post" action="/enrolment/{{ t.id }}/revoke">{{ csrf_field() }}<button class="small danger">Revoke</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="muted">No tokens yet.</td></tr>{% endfor %}</tbody></table>
+{% endblock %}

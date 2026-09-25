@@ -1,0 +1,371 @@
+# YLTS Remote — Windows build
+#
+# This file does not run from the ylts-remote package on its own. Copy it to
+# .github/workflows/ylts-windows.yml in a fork of github.com/rustdesk/rustdesk
+# checked out at tag 1.5.0, and copy this package into that fork as ylts/.
+# ci/install-into-fork.ps1 does both.
+#
+# Branding anchors were checked against tag 1.5.0
+# (e9ddbd8f460dac1b30b9815ba324a5dadc8d97b0, hbb_common 229b904).
+#
+# Repository secrets:
+#   RUSTDESK_HOST   public DNS name, no scheme, e.g. remote.ylts.com.au
+#   RUSTDESK_KEY    hbbs public key from the portal Server page
+#
+# The Windows toolchain steps follow the x64 job in RustDesk 1.5.0
+# .github/workflows/flutter-build.yml. Signing, the MSI, and the GitHub
+# Release step are left out.
+
+name: YLTS Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version stamped on the agent and the installers
+        required: false
+        default: "1.0.0"
+
+permissions:
+  contents: read
+  actions: write
+
+env:
+  SCITER_RUST_VERSION: "1.75"
+  LLVM_VERSION: "15.0.6"
+  FLUTTER_VERSION: "3.24.5"
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  # vcpkg 2026.07.29, same pin as RustDesk 1.5.0
+  VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+  YLTS_VERSION: ${{ inputs.version || '1.0.0' }}
+
+jobs:
+  check-secrets:
+    name: server host and key
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require server host and key
+        env:
+          RUSTDESK_HOST: ${{ secrets.RUSTDESK_HOST }}
+          RUSTDESK_KEY: ${{ secrets.RUSTDESK_KEY }}
+        run: |
+          if [ -z "$RUSTDESK_HOST" ] || [ -z "$RUSTDESK_KEY" ]; then
+            echo "Set repository secrets RUSTDESK_HOST and RUSTDESK_KEY."
+            echo "RUSTDESK_HOST is the public DNS name with no scheme. RUSTDESK_KEY is the hbbs public key from the portal Server page."
+            exit 1
+          fi
+          echo "Host is set. Key length: ${#RUSTDESK_KEY}"
+
+  generate-bridge:
+    needs: check-secrets
+    uses: ./.github/workflows/bridge.yml
+
+  build-RustDeskTempTopMostWindow:
+    needs: check-secrets
+    uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
+    with:
+      upload-artifact: true
+      target: windows-2022
+      configuration: Release
+      platform: x64
+      target_version: Windows10
+
+  agent:
+    name: ylts-agent
+    needs: check-secrets
+    runs-on: windows-2022
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: "1.24.7"
+
+      - name: Refresh icons
+        shell: bash
+        run: |
+          python3 -m pip install pillow
+          python3 ylts/branding/make_icons.py
+
+      - name: Build ylts-agent.exe
+        shell: bash
+        working-directory: ylts/agent
+        run: |
+          go mod tidy
+          VERSION="${YLTS_VERSION}" ./build.sh
+          mkdir -p ../agent-out
+          cp dist/ylts-agent.exe go.sum ../agent-out/
+
+      - name: Upload agent
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ylts-agent
+          path: ylts/agent-out/
+          if-no-files-found: error
+
+  windows-x64:
+    name: branded RustDesk
+    needs: [generate-bridge, build-RustDeskTempTopMostWindow]
+    runs-on: windows-2022
+    steps:
+      - name: Require server host and key
+        shell: bash
+        env:
+          RUSTDESK_HOST: ${{ secrets.RUSTDESK_HOST }}
+          RUSTDESK_KEY: ${{ secrets.RUSTDESK_KEY }}
+        run: |
+          if [ -z "$RUSTDESK_HOST" ] || [ -z "$RUSTDESK_KEY" ]; then
+            echo "Set repository secrets RUSTDESK_HOST and RUSTDESK_KEY."
+            echo "RUSTDESK_HOST is the public DNS name with no scheme. RUSTDESK_KEY is the hbbs public key from the portal Server page."
+            exit 1
+          fi
+          echo "RUSTDESK_HOST=$RUSTDESK_HOST" >> "$GITHUB_ENV"
+          echo "RUSTDESK_KEY<<EOF" >> "$GITHUB_ENV"
+          echo "$RUSTDESK_KEY" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
+
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: recursive
+
+      - name: Restore bridge files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bridge-artifact
+          path: ./
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@ebc0426251bc40c7cd31162802432c68818ab8f0 # v2.0.9
+        with:
+          version: ${{ env.LLVM_VERSION }}
+
+      - name: Install flutter
+        uses: subosito/flutter-action@2783a3f08e1baf891508463f8c6653c258246225 # v2.12.0
+        with:
+          channel: "stable"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          architecture: x64
+
+      - name: Replace engine with rustdesk custom flutter engine
+        run: |
+          flutter doctor -v
+          flutter precache --windows
+          Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
+          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
+          mv -Force windows-x64-release/*  C:/hostedtoolcache/windows/flutter/stable-${{ env.FLUTTER_VERSION }}-x64/bin/cache/artifacts/engine/windows-x64-release/
+
+      - name: Patch flutter
+        shell: bash
+        run: |
+          cp .github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff $(dirname $(dirname $(which flutter)))
+          cd $(dirname $(dirname $(which flutter)))
+          if [[ "3.24.5" == ${{ env.FLUTTER_VERSION }} ]]; then
+            git apply flutter_3.24.4_dropdown_menu_enableFilter.diff
+          fi
+
+      - name: Apply YLTS branding
+        shell: bash
+        run: |
+          python3 -m pip install pillow
+          python3 ylts/branding/make_icons.py
+          python3 ylts/branding/apply_branding.py --host "$RUSTDESK_HOST" --key "$RUSTDESK_KEY"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ env.SCITER_RUST_VERSION }}
+          targets: x86_64-pc-windows-msvc
+          components: "rustfmt"
+
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          prefix-key: windows-2022-ylts
+
+      - name: Setup vcpkg with Github Actions binary cache
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
+        with:
+          vcpkgDirectory: C:\vcpkg
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+          doNotCache: false
+
+      - name: Install vcpkg dependencies
+        env:
+          VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
+        shell: bash
+        run: |
+          if ! $VCPKG_ROOT/vcpkg \
+            install \
+            --triplet x64-windows-static \
+            --x-install-root="$VCPKG_ROOT/installed"; then
+            find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
+              echo "$_1:"
+              echo "======"
+              cat "$_1"
+              echo "======"
+              echo ""
+            done
+            exit 1
+          fi
+          head -n 100 "${VCPKG_ROOT}/buildtrees/ffmpeg/build-x64-windows-static-rel-out.log" || true
+
+      - name: Build rustdesk
+        run: |
+          python3 .\build.py --portable --flutter --skip-portable-pack --hwcodec --vram
+          mv ./flutter/build/windows/x64/runner/Release ./rustdesk
+
+          Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
+          Expand-Archive usbmmidd_v2.zip -DestinationPath .
+          Remove-Item -Path usbmmidd_v2\Win32 -Recurse
+          Remove-Item -Path "usbmmidd_v2\deviceinstaller64.exe", "usbmmidd_v2\deviceinstaller.exe", "usbmmidd_v2\usbmmidd.bat"
+          mv -Force .\usbmmidd_v2 ./rustdesk
+
+          try {
+            Invoke-WebRequest -Uri https://github.com/rustdesk/hbb_common/releases/download/driver/rustdesk_printer_driver_v4-1.4.zip -OutFile rustdesk_printer_driver_v4-1.4.zip
+            Invoke-WebRequest -Uri https://github.com/rustdesk/hbb_common/releases/download/driver/printer_driver_adapter.zip -OutFile printer_driver_adapter.zip
+            Invoke-WebRequest -Uri https://github.com/rustdesk/hbb_common/releases/download/driver/sha256sums -OutFile sha256sums
+
+            $checksum_driver = (Select-String -Path .\sha256sums -Pattern '^([a-fA-F0-9]{64}) \*rustdesk_printer_driver_v4-1.4\.zip$').Matches.Groups[1].Value
+            $downloadsum_driver = Get-FileHash -Path rustdesk_printer_driver_v4-1.4.zip -Algorithm SHA256
+            $checksum_adapter = (Select-String -Path .\sha256sums -Pattern '^([a-fA-F0-9]{64}) \*printer_driver_adapter\.zip$').Matches.Groups[1].Value
+            $downloadsum_adapter = Get-FileHash -Path printer_driver_adapter.zip -Algorithm SHA256
+            if ($checksum_driver -eq $downloadsum_driver.Hash -and $checksum_adapter -eq $downloadsum_adapter.Hash) {
+                Write-Output "rustdesk_printer_driver_v4-1.4, checksums match, extract the file."
+                Expand-Archive rustdesk_printer_driver_v4-1.4.zip -DestinationPath .
+                mkdir ./rustdesk/drivers
+                mv -Force .\rustdesk_printer_driver_v4-1.4 ./rustdesk/drivers/RustDeskPrinterDriver
+                Expand-Archive printer_driver_adapter.zip -DestinationPath .
+                mv -Force .\printer_driver_adapter.dll ./rustdesk
+            } elseif ($checksum_driver -ne $downloadsum_driver.Hash) {
+                Write-Output "rustdesk_printer_driver_v4-1.4, checksums do not match, ignore the file."
+            } else {
+                Write-Output "printer_driver_adapter.dll, checksums do not match, ignore the file."
+            }
+          } catch {
+              Write-Host "Ingore the printer driver error."
+          }
+
+      - name: find Runner.res
+        continue-on-error: true
+        shell: bash
+        run: |
+          runner_res=$(find . -name "Runner.res");
+          if [ "$runner_res" == "" ]; then
+            echo "Runner.res: not found";
+          else
+            echo "Runner.res: $runner_res";
+            cp $runner_res ./libs/portable/Runner.res;
+          fi
+
+      - name: Download RustDeskTempTopMostWindow artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: topmostwindow-artifacts-x64
+          path: "./rustdesk"
+
+      - name: Pack the three YLTS apps
+        shell: bash
+        run: |
+          set -eu
+          python3 ylts/branding/apply_branding.py \
+            --host "$RUSTDESK_HOST" --key "$RUSTDESK_KEY" --variants-only ylts-variants
+          sed -i '/dpiAware/d' res/manifest.xml
+          mkdir -p dist
+          pushd ./libs/portable
+          pip3 install -r requirements.txt
+          popd
+
+          pack_one() {
+            local src_json="$1"
+            local out_name="$2"
+            cp "ylts-variants/${src_json}" rustdesk/ylts.json
+            pushd ./libs/portable
+            python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe
+            popd
+            local packer="./target/release/rustdesk-portable-packer.exe"
+            if [ ! -f "$packer" ]; then
+              packer="./libs/portable/target/release/rustdesk-portable-packer.exe"
+            fi
+            if [ ! -f "$packer" ]; then
+              echo "portable packer was not produced"
+              exit 1
+            fi
+            cp "$packer" "dist/${out_name}"
+            echo "packed dist/${out_name}"
+          }
+
+          pack_one ylts-host.json YLTS-Remote-Host.exe
+          pack_one ylts-technician.json YLTS-Technician.exe
+          # The -qs suffix is what turns on RustDesk quick-support mode.
+          pack_one ylts-quicksupport.json YLTS-Quick-Support-qs.exe
+
+      - name: Upload branded apps
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ylts-branded-apps
+          path: |
+            dist/YLTS-Remote-Host.exe
+            dist/YLTS-Technician.exe
+            dist/YLTS-Quick-Support-qs.exe
+          if-no-files-found: error
+
+  installers:
+    name: NSIS installers
+    needs: [agent, windows-x64]
+    runs-on: windows-2022
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Download agent
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ylts-agent
+          path: payload
+
+      - name: Download branded apps
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ylts-branded-apps
+          path: payload
+
+      - name: Build installers
+        shell: bash
+        env:
+          RUSTDESK_HOST: ${{ secrets.RUSTDESK_HOST }}
+        run: |
+          set -eu
+          python3 -m pip install pillow
+          python3 ylts/branding/make_icons.py
+          cp ylts/branding/generated/ylts.ico payload/ylts.ico
+          cp ylts/branding/generated/installer-side.bmp payload/installer-side.bmp
+          test -f payload/ylts-agent.exe
+          test -f payload/YLTS-Remote-Host.exe
+          test -f payload/YLTS-Technician.exe
+          # makensis resolves File paths from the .nsi directory, so pass an absolute payload path.
+          payload="$(pwd -W)/payload"
+          makensis -DVERSION="${YLTS_VERSION}" -DPORTAL_URL="https://${RUSTDESK_HOST}" -DPAYLOAD="$payload" ylts/installer/host.nsi
+          makensis -DVERSION="${YLTS_VERSION}" -DPAYLOAD="$payload" ylts/installer/technician.nsi
+          mkdir -p dist
+          mv ylts/installer/YLTS-Remote-Setup.exe dist/
+          mv ylts/installer/YLTS-Technician-Setup.exe dist/
+          cp payload/ylts-agent.exe dist/
+          cp payload/YLTS-Remote-Host.exe dist/
+          cp payload/YLTS-Technician.exe dist/
+          cp payload/YLTS-Quick-Support-qs.exe dist/
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ylts-windows-${{ env.YLTS_VERSION }}
+          path: dist/
+          if-no-files-found: error

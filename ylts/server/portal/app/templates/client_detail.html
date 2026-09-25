@@ -1,0 +1,50 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf_field, status, grant_table, grant_form, expiry_select with context %}
+{% block title %}{{ c.name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="/clients">Clients</a> /</p>
+<h1>{{ c.name }}</h1>
+{% include "_new_token.html" %}
+<div class="cols">
+<section class="card">
+  <h2>Details</h2>
+  <form method="post" action="/clients/{{ c.id }}" class="stack">{{ csrf_field() }}
+    <label>Name<input name="name" value="{{ c.name }}" required></label>
+    <label>Note<textarea name="note" rows="3">{{ c.note }}</textarea></label>
+    <button>Save</button>
+  </form>
+</section>
+<section class="card">
+  <h2>Add PCs for this client</h2>
+  <p class="muted small">Creates an enrolment token. Install the YLTS Remote host with it and the PC appears here automatically.</p>
+  <form method="post" action="/enrolment" class="stack">{{ csrf_field() }}
+    <input type="hidden" name="client_id" value="{{ c.id }}">
+    <label>Label<input name="label" placeholder="e.g. Office rollout"></label>
+    <label>Max installs<input name="uses" inputmode="numeric" placeholder="Unlimited"></label>
+    <label>Valid for<select name="expiry" data-custom-toggle><option value="1d">1 day</option><option value="7d">7 days</option><option value="30d" selected>30 days</option><option value="never">No expiry</option><option value="custom">Pick a date…</option></select>
+      <input type="datetime-local" name="expiry_custom" class="custom-date" hidden></label>
+    <button>Create enrolment token</button>
+  </form>
+  {% if tokens %}<h3>Tokens</h3>
+  <ul class="plain small">{% for t in tokens %}<li><code>{{ t.token_hint }}…</code> {{ t.label }} —
+    {% if t.usable(now) %}<span class="pill green">active</span>{% else %}<span class="pill grey">inactive</span>{% endif %}
+    {% if t.usable(now) %}<form method="post" action="/enrolment/{{ t.id }}/revoke" class="inline">{{ csrf_field() }}<button class="link small">revoke</button></form>{% endif %}</li>{% endfor %}</ul>{% endif %}
+</section>
+</div>
+<section>
+  <h2>Devices ({{ c.devices|length }})</h2>
+  <table class="grid">
+  <thead><tr><th>Device</th><th>ID</th><th>User</th><th>Status</th><th>Last seen</th></tr></thead>
+  <tbody>{% for d in c.devices|sort(attribute='hostname') %}
+  <tr><td><a href="/devices/{{ d.id }}"><b>{{ d.label }}</b></a></td><td><code>{{ d.rustdesk_id }}</code></td><td>{{ d.os_username }}</td><td>{{ status(d, now) }}</td><td>{{ (d.agent_last_seen or d.last_seen)|ago }}</td></tr>
+  {% else %}<tr><td colspan="5" class="muted">No devices yet.</td></tr>{% endfor %}</tbody>
+  </table>
+</section>
+<section>
+  <h2>Who can reach all of {{ c.name }}</h2>
+  {{ grant_table(grants, now, show_target=False) }}
+  {{ grant_form(users=users, teams=teams, fixed_target='client:%d'|format(c.id)) }}
+</section>
+<section class="danger-zone">
+  <form method="post" action="/clients/{{ c.id }}/delete">{{ csrf_field() }}<button class="danger" data-confirm="Delete {{ c.name }}? Its devices become unassigned and access through this client is removed.">Delete client</button></form>
+</section>
+{% endblock %}

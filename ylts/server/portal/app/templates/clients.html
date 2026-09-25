@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf_field with context %}
+{% block title %}Clients{% endblock %}
+{% block content %}
+<h1>Clients</h1>
+<p class="muted">Each client (a business or household) gets its own address book in the technician app.</p>
+<form method="post" action="/clients" class="inline-form card">{{ csrf_field() }}
+  <label>Name<input name="name" required placeholder="e.g. Smith Accounting"></label>
+  <label class="grow">Note<input name="note" placeholder="Optional"></label>
+  <button>Add client</button>
+</form>
+<table class="grid">
+<thead><tr><th>Client</th><th>Devices</th><th>Online now</th><th>Note</th></tr></thead>
+<tbody>
+{% for c in clients %}
+<tr><td><a href="/clients/{{ c.id }}"><b>{{ c.name }}</b></a></td><td>{{ c.devices|length }}</td>
+<td>{{ online[c.id] }}</td><td class="muted">{{ c.note }}</td></tr>
+{% else %}<tr><td colspan="4" class="muted">No clients yet.</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

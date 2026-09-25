@@ -1,0 +1,64 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf_field, status, grant_table, grant_form with context %}
+{% block title %}{{ d.label }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="/devices">Devices</a> /{% if d.client %} <a href="/clients/{{ d.client.id }}">{{ d.client.name }}</a> /{% endif %}</p>
+<h1>{{ d.label }} {{ status(d, now) }}</h1>
+{% if revealed %}<div class="card highlight"><p>Current password (logged in the audit trail):</p>
+  <div class="copyrow"><code id="pw">{{ revealed }}</code><button type="button" class="small" data-copy="#pw">Copy</button></div>
+  <p class="small muted">Rotate it after an emergency so this copy stops working.</p></div>{% endif %}
+<div class="cols">
+<section class="card">
+  <h2>Details</h2>
+  <dl class="kv">
+    <dt>RustDesk ID</dt><dd><code>{{ d.rustdesk_id }}</code></dd>
+    <dt>Computer name</dt><dd>{{ d.hostname or '—' }}</dd>
+    <dt>Signed-in user</dt><dd>{{ d.os_username or '—' }}</dd>
+    <dt>OS</dt><dd>{{ d.os or '—' }}</dd>
+    <dt>Host version</dt><dd>{{ d.version or '—' }} · agent {{ d.agent_version or '—' }}</dd>
+    {% if d.info.cpu %}<dt>CPU</dt><dd>{{ d.info.cpu }}</dd>{% endif %}
+    {% if d.info.memory %}<dt>Memory</dt><dd>{{ d.info.memory }}</dd>{% endif %}
+    <dt>Enrolled</dt><dd>{{ d.enrolled_at|local }}</dd>
+    <dt>Agent check-in</dt><dd>{{ d.agent_last_seen|ago }}</dd>
+    <dt>Host heartbeat</dt><dd>{{ d.last_seen|ago }}</dd>
+    <dt>Password</dt><dd>v{{ d.password_version }}{% if d.password_set_at %}, confirmed {{ d.password_set_at|ago }}{% endif %}{% if d.pending_password_enc %} · v{{ d.pending_version }} waiting for the PC{% endif %}</dd>
+  </dl>
+</section>
+<section class="card">
+  <h2>Settings</h2>
+  <form method="post" action="/devices/{{ d.id }}" class="stack">{{ csrf_field() }}
+    <label>Display name<input name="alias" value="{{ d.alias }}" placeholder="{{ d.hostname }}"></label>
+    <label>Client<select name="client_id"><option value="">Unassigned</option>
+      {% for c in clients %}<option value="{{ c.id }}" {{ 'selected' if c.id == d.client_id }}>{{ c.name }}</option>{% endfor %}</select></label>
+    <label>Tags (comma separated)<input name="tags" value="{{ d.tags }}" placeholder="reception, server"></label>
+    <label>Note<textarea name="note" rows="2">{{ d.note }}</textarea></label>
+    <button>Save</button>
+  </form>
+</section>
+</div>
+<section class="card actions">
+  <h2>Actions</h2>
+  <form method="post" action="/devices/{{ d.id }}/rotate">{{ csrf_field() }}<button>Change password now</button></form>
+  <form method="post" action="/devices/{{ d.id }}/disconnect">{{ csrf_field() }}<button {{ 'disabled' if not d.conns }}>End active sessions</button></form>
+  <form method="post" action="/devices/{{ d.id }}/reveal">{{ csrf_field() }}<button class="ghost" data-confirm="Show the password? This is recorded in the audit log.">Show password</button></form>
+  <form method="post" action="/devices/{{ d.id }}/disable">{{ csrf_field() }}<button class="{{ '' if d.disabled else 'danger' }}" {% if not d.disabled %}data-confirm="Disable this device? Technicians lose access, sessions end, and the password is changed."{% endif %}>{{ 'Enable device' if d.disabled else 'Disable device' }}</button></form>
+  <form method="post" action="/devices/{{ d.id }}/delete">{{ csrf_field() }}<button class="danger" data-confirm="Remove this device from the portal? Uninstall YLTS Remote from the PC as well.">Remove</button></form>
+</section>
+<div class="cols">
+<section>
+  <h2>Who can reach it</h2>
+  <ul class="plain">{% for u in who %}<li><a href="/technicians/{{ u.id }}">{{ u.label }}</a>{% if u.is_admin %} <span class="pill grey">admin</span>{% endif %}</li>{% else %}<li class="muted">Nobody except administrators.</li>{% endfor %}</ul>
+  <h3>Grants</h3>
+  {{ grant_table(grants, now) }}
+  <h3>Give someone access to just this device</h3>
+  {{ grant_form(users=users, teams=teams, fixed_target='device:%d'|format(d.id)) }}
+</section>
+<section>
+  <h2>History</h2>
+  {% for e in events %}{% set x = loads(e.detail) %}
+  <div class="event small"><span class="kind">{{ e.kind }}</span> {% if e.actor %}<b>{{ e.actor }}</b>{% endif %}
+    {% if e.ip %}<span class="muted">{{ e.ip }}</span>{% endif %} <span class="muted">{{ e.ts|local }}</span>
+    {% if x is mapping and x.message %}<div>{{ x.message }}</div>{% elif x is string %}<div class="muted">{{ x }}</div>{% endif %}</div>
+  {% else %}<p class="muted">No history yet.</p>{% endfor %}
+</section>
+</div>
+{% endblock %}

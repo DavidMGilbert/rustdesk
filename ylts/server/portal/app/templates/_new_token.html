@@ -1,0 +1,10 @@
+{% if new_token %}
+<div class="card highlight">
+  <h2>Enrolment token created</h2>
+  <p>Copy it now: it won't be shown again.</p>
+  <div class="copyrow"><code id="tok">{{ new_token.token }}</code><button type="button" class="small" data-copy="#tok">Copy</button></div>
+  <p class="small">Silent install (RMM, GPO or an admin command prompt):</p>
+  <div class="copyrow"><code id="cmd">{{ new_token.command }}</code><button type="button" class="small" data-copy="#cmd">Copy</button></div>
+  <p class="small muted">Or run the installer normally and paste the token when it asks.</p>
+</div>
+{% endif %}

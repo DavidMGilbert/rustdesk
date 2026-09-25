@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Server{% endblock %}{% block mainclass %}narrow{% endblock %}
+{% block content %}
+<h1>Server settings</h1>
+<p class="muted">These are baked into the YLTS apps at build time. Use them to set up a stock RustDesk client for testing (Settings → Network → ID/Relay server).</p>
+<section class="card">
+<dl class="kv">
+  <dt>ID server</dt><dd><code>{{ settings.rustdesk_host }}</code></dd>
+  <dt>Relay server</dt><dd><code>{{ settings.rustdesk_host }}:21117</code></dd>
+  <dt>API server</dt><dd><code>{{ settings.public_url }}</code></dd>
+  <dt>Key</dt><dd>{% if key %}<span class="copyrow"><code id="key">{{ key }}</code><button type="button" class="small" data-copy="#key">Copy</button></span>{% else %}<span class="muted">Not found yet. It appears after hbbs starts the first time.</span>{% endif %}</dd>
+</dl>
+</section>
+<section class="card">
+  <h2>Checklist</h2>
+  <ol>
+    <li>Open ports 21115–21119 TCP and 21116 UDP to this server, plus 443 for the portal.</li>
+    <li>Put the key above into the GitHub secret <code>YLTS_RS_PUB_KEY</code> and build the apps.</li>
+    <li>Create clients, add technicians, grant access, then create an enrolment token for each client's PCs.</li>
+  </ol>
+</section>
+{% endblock %}

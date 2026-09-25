@@ -1,0 +1,32 @@
+{
+  "app-name": "YLTS Remote Host",
+  "conn-type": "incoming",
+  "override-settings": {
+    "custom-rendezvous-server": "{{HOST}}",
+    "relay-server": "{{HOST}}:21117",
+    "api-server": "https://{{HOST}}",
+    "key": "{{KEY}}",
+    "verification-method": "use-permanent-password",
+    "direct-server": "N",
+    "enable-lan-discovery": "N",
+    "allow-remote-config-modification": "N",
+    "enable-check-update": "N",
+    "allow-auto-update": "N",
+    "hide-security-settings": "Y",
+    "hide-network-settings": "Y",
+    "hide-server-settings": "Y",
+    "hide-proxy-settings": "Y",
+    "hide-websocket-settings": "Y",
+    "hide-help-cards": "Y",
+    "hide-tray": "Y",
+    "allow-hide-cm": "N"
+  },
+  "default-settings": {
+    "approve-mode": "password",
+    "enable-keyboard": "Y",
+    "enable-clipboard": "Y",
+    "enable-file-transfer": "Y",
+    "enable-remote-restart": "Y",
+    "enable-audio": "Y"
+  }
+}

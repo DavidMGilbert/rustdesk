@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% from "_macros.html" import grant_table, grant_form with context %}
+{% block title %}Access{% endblock %}
+{% block content %}
+<h1>Access</h1>
+<p class="muted">A technician can reach a device if they, or a team they're in, have been granted that device or its whole client. Administrators can reach everything. Removing access changes the affected devices' passwords automatically.</p>
+<section class="card"><h2>Grant access</h2>{{ grant_form(users=users, teams=teams, clients=clients, devices=all_devices) }}</section>
+{{ grant_table(grants, now) }}
+{% endblock %}

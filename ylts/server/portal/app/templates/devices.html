@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% from "_macros.html" import status with context %}
+{% block title %}Devices{% endblock %}
+{% block content %}
+<h1>Devices</h1>
+<form method="get" class="inline-form">
+  <label class="grow">Search<input name="q" value="{{ q }}" placeholder="Name, ID, user or tag"></label>
+  <label>Client<select name="client"><option value="">All</option><option value="none" {{ 'selected' if client == 'none' }}>Unassigned</option>
+    {% for c in clients %}<option value="{{ c.id }}" {{ 'selected' if client == c.id|string }}>{{ c.name }}</option>{% endfor %}</select></label>
+  <button>Filter</button>
+</form>
+<table class="grid">
+<thead><tr><th>Device</th><th>Client</th><th>ID</th><th>User</th><th>Status</th><th>Last seen</th><th>Version</th></tr></thead>
+<tbody>
+{% for d in devices %}
+<tr><td><a href="/devices/{{ d.id }}"><b>{{ d.label }}</b></a>{% for t in d.tag_list %} <span class="tag">{{ t }}</span>{% endfor %}</td>
+<td>{% if d.client %}<a href="/clients/{{ d.client.id }}">{{ d.client.name }}</a>{% else %}<span class="muted">Unassigned</span>{% endif %}</td>
+<td><code>{{ d.rustdesk_id }}</code></td><td>{{ d.os_username }}</td><td>{{ status(d, now) }}</td>
+<td>{{ (d.agent_last_seen or d.last_seen)|ago }}</td><td class="muted small">{{ d.version }}</td></tr>
+{% else %}<tr><td colspan="7" class="muted">No devices. Create an enrolment token and install the host on a PC.</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

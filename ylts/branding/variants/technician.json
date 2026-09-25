@@ -1,0 +1,22 @@
+{
+  "app-name": "YLTS Technician",
+  "conn-type": "outgoing",
+  "override-settings": {
+    "custom-rendezvous-server": "{{HOST}}",
+    "relay-server": "{{HOST}}:21117",
+    "api-server": "https://{{HOST}}",
+    "key": "{{KEY}}",
+    "enable-lan-discovery": "N",
+    "enable-check-update": "N",
+    "allow-auto-update": "N",
+    "hide-network-settings": "Y",
+    "hide-server-settings": "Y",
+    "hide-proxy-settings": "Y",
+    "hide-websocket-settings": "Y",
+    "hide-help-cards": "Y",
+    "disable-discovery-panel": "Y"
+  },
+  "default-settings": {
+    "peer-tab-index": "3"
+  }
+}

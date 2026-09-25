@@ -1,0 +1,28 @@
+#include <winver.h>
+1 ICON "icons/ylts.ico"
+1 24 "agent.manifest"
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "0c0904b0"
+    BEGIN
+      VALUE "CompanyName",      "Your Local Tech Solutions"
+      VALUE "FileDescription",  "YLTS Agent"
+      VALUE "FileVersion",      "1.0.0"
+      VALUE "InternalName",     "ylts-agent"
+      VALUE "LegalCopyright",   "Your Local Tech Solutions"
+      VALUE "OriginalFilename", "ylts-agent.exe"
+      VALUE "ProductName",      "YLTS Remote"
+      VALUE "ProductVersion",   "1.0.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0c09, 1200
+  END
+END

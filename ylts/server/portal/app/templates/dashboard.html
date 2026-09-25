@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="stats">
+  <a class="stat" href="/devices"><b>{{ stats.online }}</b><span>of {{ stats.devices }} devices online</span></a>
+  <div class="stat"><b>{{ stats.sessions }}</b><span>active sessions</span></div>
+  <a class="stat" href="/clients"><b>{{ stats.clients }}</b><span>clients</span></a>
+  <a class="stat" href="/technicians"><b>{{ stats.techs }}</b><span>active staff</span></a>
+  <div class="stat {{ 'warn' if stats.pending }}"><b>{{ stats.pending }}</b><span>password changes pending</span></div>
+</div>
+{% if not user.has_2fa %}<div class="flash warn">Your account doesn't have two-factor authentication yet. <a href="/account">Set it up</a>.</div>{% endif %}
+<div class="cols">
+<section class="card">
+  <h2>Help requests</h2>
+  {% for e in help_reqs %}{% set x = loads(e.detail) %}
+    <div class="event">
+      <div><b>{{ names.get(e.device_rustdesk_id, e.device_rustdesk_id) }}</b>{% if x.client %} · {{ x.client }}{% endif %}{% if x.user %} · {{ x.user }}{% endif %} <span class="muted small">{{ e.ts|ago }}</span></div>
+      {% if x.message %}<div>{{ x.message }}</div>{% endif %}
+      {% if x.contact %}<div class="muted small">Contact: {{ x.contact }}</div>{% endif %}
+    </div>
+  {% else %}<p class="muted">No help requests yet. Clients can send one from the YLTS icon near their clock.</p>{% endfor %}
+</section>
+<section class="card">
+  <h2>Recent activity <a class="small" href="/audit">View all</a></h2>
+  {% for e in recent %}
+    <div class="event small"><span class="kind">{{ e.kind }}</span> {% if e.actor %}<b>{{ e.actor }}</b>{% endif %}
+      {% if e.device_rustdesk_id %}· {{ names.get(e.device_rustdesk_id, e.device_rustdesk_id) }}{% endif %}
+      <span class="muted">{{ e.ts|ago }}</span></div>
+  {% else %}<p class="muted">Nothing yet.</p>{% endfor %}
+</section>
+</div>
+{% endblock %}

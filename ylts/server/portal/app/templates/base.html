@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}YLTS Portal{% endblock %} · {{ settings.company_name }}</title>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+{% if user %}
+<header class="topbar">
+  <a class="brand" href="/"><img src="/static/icon.svg" alt=""><span>YLTS <b>Remote</b></span></a>
+  <nav>
+    {% if user.is_admin %}
+    <a href="/" class="{{ 'on' if path == '/' }}">Dashboard</a>
+    <a href="/clients" class="{{ 'on' if path.startswith('/clients') }}">Clients</a>
+    <a href="/devices" class="{{ 'on' if path.startswith('/devices') }}">Devices</a>
+    <a href="/technicians" class="{{ 'on' if path.startswith('/technicians') }}">Technicians</a>
+    <a href="/teams" class="{{ 'on' if path.startswith('/teams') }}">Teams</a>
+    <a href="/access" class="{{ 'on' if path.startswith('/access') }}">Access</a>
+    <a href="/enrolment" class="{{ 'on' if path.startswith('/enrolment') }}">Enrolment</a>
+    <a href="/audit" class="{{ 'on' if path.startswith('/audit') }}">Audit</a>
+    <a href="/settings" class="{{ 'on' if path.startswith('/settings') }}">Server</a>
+    {% else %}
+    <a href="/my-devices" class="{{ 'on' if path == '/my-devices' }}">My devices</a>
+    {% endif %}
+  </nav>
+  <div class="me">
+    <a href="/account">{{ user.label }}</a>
+    <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="link">Sign out</button></form>
+  </div>
+</header>
+{% endif %}
+<main class="{% block mainclass %}{% endblock %}">
+  {% for kind, msg in flashes %}<div class="flash {{ kind }}">{{ msg }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "app-name": "YLTS Quick Support",
+  "conn-type": "incoming",
+  "override-settings": {
+    "custom-rendezvous-server": "{{HOST}}",
+    "relay-server": "{{HOST}}:21117",
+    "api-server": "https://{{HOST}}",
+    "key": "{{KEY}}",
+    "verification-method": "use-temporary-password",
+    "approve-mode": "password-click",
+    "allow-numeric-one-time-password": "Y",
+    "temporary-password-length": "8",
+    "direct-server": "N",
+    "enable-lan-discovery": "N",
+    "enable-check-update": "N",
+    "allow-auto-update": "N",
+    "hide-security-settings": "Y",
+    "hide-network-settings": "Y",
+    "hide-server-settings": "Y",
+    "hide-proxy-settings": "Y",
+    "hide-websocket-settings": "Y",
+    "hide-help-cards": "Y"
+  }
+}

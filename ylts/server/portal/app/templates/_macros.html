@@ -1,0 +1,68 @@
+{% macro csrf_field() %}<input type="hidden" name="csrf" value="{{ csrf }}">{% endmacro %}
+
+{% macro status(d, now) -%}
+  {% if d.disabled %}<span class="pill grey">Disabled</span>
+  {% elif d.online(now) %}<span class="pill green">Online</span>{% if d.conns %} <span class="pill blue">{{ d.conns|length }} session{{ 's' if d.conns|length > 1 }}</span>{% endif %}
+  {% else %}<span class="pill grey">Offline</span>{% endif %}
+  {% if d.pending_password_enc %}<span class="pill amber" title="New password waiting for the PC to confirm">Rotating</span>{% endif %}
+  {% if d.paused_by_user %}<span class="pill amber" title="The client ticked 'Ask me before a technician connects'">Asks first</span>{% endif %}
+{%- endmacro %}
+
+{% macro grant_subject(g) -%}
+  {% if g.user %}<a href="/technicians/{{ g.user.id }}">{{ g.user.label }}</a>{% elif g.team %}<a href="/teams/{{ g.team.id }}">Team: {{ g.team.name }}</a>{% endif %}
+{%- endmacro %}
+
+{% macro grant_target(g) -%}
+  {% if g.client %}<a href="/clients/{{ g.client.id }}">All of {{ g.client.name }}</a>{% elif g.device %}<a href="/devices/{{ g.device.id }}">{{ g.device.label }}</a>{% endif %}
+{%- endmacro %}
+
+{% macro expiry(g, now) -%}
+  {% if g.expires_at %}{% if g.expires_at > now %}until {{ g.expires_at|local }}{% else %}expired{% endif %}{% else %}no expiry{% endif %}
+{%- endmacro %}
+
+{% macro grant_table(grants, now, show_subject=True, show_target=True) %}
+<table class="grid">
+  <thead><tr>{% if show_subject %}<th>Who</th>{% endif %}{% if show_target %}<th>Can reach</th>{% endif %}<th>Expiry</th><th>Note</th><th></th></tr></thead>
+  <tbody>
+  {% for g in grants %}
+  <tr>
+    {% if show_subject %}<td>{{ grant_subject(g) }}</td>{% endif %}
+    {% if show_target %}<td>{{ grant_target(g) }}</td>{% endif %}
+    <td>{{ expiry(g, now) }}</td>
+    <td class="muted">{{ g.note }}</td>
+    <td class="right"><form method="post" action="/access/{{ g.id }}/delete">{{ csrf_field() }}<button class="small danger" data-confirm="Remove this access? Affected devices will get a new password.">Remove</button></form></td>
+  </tr>
+  {% else %}<tr><td colspan="5" class="muted">No access granted yet.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% macro expiry_select() %}
+<select name="expiry" data-custom-toggle>
+  <option value="never">No expiry</option>
+  <option value="1h">1 hour</option><option value="4h">4 hours</option><option value="1d">1 day</option>
+  <option value="7d">7 days</option><option value="30d">30 days</option><option value="custom">Pick a date…</option>
+</select>
+<input type="datetime-local" name="expiry_custom" class="custom-date" hidden>
+{% endmacro %}
+
+{% macro grant_form(users=None, teams=None, clients=None, devices=None, fixed_subject=None, fixed_target=None) %}
+<form method="post" action="/access" class="inline-form">
+  {{ csrf_field() }}
+  {% if fixed_subject %}<input type="hidden" name="subject" value="{{ fixed_subject }}">{% else %}
+  <label>Who<select name="subject" required>
+    <option value="">Choose…</option>
+    {% if users %}<optgroup label="Technicians">{% for u in users %}<option value="user:{{ u.id }}">{{ u.label }}</option>{% endfor %}</optgroup>{% endif %}
+    {% if teams %}<optgroup label="Teams">{% for t in teams %}<option value="team:{{ t.id }}">{{ t.name }}</option>{% endfor %}</optgroup>{% endif %}
+  </select></label>{% endif %}
+  {% if fixed_target %}<input type="hidden" name="target" value="{{ fixed_target }}">{% else %}
+  <label>Can reach<select name="target" required>
+    <option value="">Choose…</option>
+    {% if clients %}<optgroup label="Whole client">{% for c in clients %}<option value="client:{{ c.id }}">{{ c.name }}</option>{% endfor %}</optgroup>{% endif %}
+    {% if devices %}<optgroup label="Single device">{% for d in devices %}<option value="device:{{ d.id }}">{{ d.label }}{% if d.client %} ({{ d.client.name }}){% endif %}</option>{% endfor %}</optgroup>{% endif %}
+  </select></label>{% endif %}
+  <label>For{{ expiry_select() }}</label>
+  <label>Note<input name="note" placeholder="e.g. ticket #123"></label>
+  <button>Grant access</button>
+</form>
+{% endmacro %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf_field with context %}
+{% block title %}Teams{% endblock %}
+{% block content %}
+<h1>Teams</h1>
+<p class="muted">Group technicians so you can grant access once, e.g. "Field techs" can reach all farm clients.</p>
+<form method="post" action="/teams" class="inline-form card">{{ csrf_field() }}
+  <label>Name<input name="name" required></label><label class="grow">Note<input name="note"></label><button>Add team</button></form>
+<table class="grid"><thead><tr><th>Team</th><th>Members</th><th>Note</th></tr></thead><tbody>
+{% for t in teams %}<tr><td><a href="/teams/{{ t.id }}"><b>{{ t.name }}</b></a></td><td>{{ t.members|map(attribute='label')|join(', ') }}</td><td class="muted">{{ t.note }}</td></tr>
+{% else %}<tr><td colspan="3" class="muted">No teams yet.</td></tr>{% endfor %}</tbody></table>
+{% endblock %}

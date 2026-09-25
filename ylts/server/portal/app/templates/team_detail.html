@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf_field, grant_table, grant_form with context %}
+{% block title %}{{ t.name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="/teams">Teams</a> /</p>
+<h1>{{ t.name }}</h1>
+<section>
+  <h2>Members</h2>
+  <div class="btnrow">
+  {% for m in t.members %}<form method="post" action="/teams/{{ t.id }}/members" class="chip">{{ csrf_field() }}<input type="hidden" name="user_id" value="{{ m.id }}"><input type="hidden" name="action" value="remove"><a href="/technicians/{{ m.id }}">{{ m.label }}</a><button class="link" title="Remove" data-confirm="Remove {{ m.label }} from {{ t.name }}?">×</button></form>{% else %}<span class="muted">No members.</span>{% endfor %}
+  </div>
+  {% set others = users|reject('in', t.members)|list %}
+  {% if others %}<form method="post" action="/teams/{{ t.id }}/members" class="inline-form">{{ csrf_field() }}<input type="hidden" name="action" value="add">
+    <select name="user_id" required><option value="">Add technician…</option>{% for u in others %}<option value="{{ u.id }}">{{ u.label }}</option>{% endfor %}</select><button class="small">Add</button></form>{% endif %}
+</section>
+<section>
+  <h2>What this team can reach</h2>
+  {{ grant_table(grants, now, show_subject=False) }}
+  {{ grant_form(clients=clients, devices=all_devices, fixed_subject='team:%d'|format(t.id)) }}
+</section>
+<section class="danger-zone"><form method="post" action="/teams/{{ t.id }}/delete">{{ csrf_field() }}<button class="danger" data-confirm="Delete team {{ t.name }}?">Delete team</button></form></section>
+{% endblock %}
