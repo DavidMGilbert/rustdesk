@@ -1,0 +1,251 @@
+# YLTS Remote — Android APKs
+#
+# Copy into a RustDesk 1.5.0 fork as .github/workflows/ylts-android.yml.
+# ci/install-into-fork.ps1 does that. Uses the same secrets as YLTS Windows:
+#   RUSTDESK_HOST   public DNS name, no scheme
+#   RUSTDESK_KEY    hbbs public key
+#
+# One native library, then two apps:
+#   YLTS-Technician.apk     outgoing client, portal sign-in
+#   YLTS-Remote-Host.apk    incoming host
+# Both are arm64. They are signed with the debug key so they can be installed
+# without a release keystore. A later rebuild with this same workflow will not
+# upgrade an already-installed copy; uninstall the old APK first.
+
+name: YLTS Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version stamped on the APKs
+        required: false
+        default: "1.0.5"
+
+permissions:
+  contents: read
+  actions: write
+
+env:
+  RUST_VERSION: "1.75"
+  CARGO_NDK_VERSION: "3.1.2"
+  ANDROID_FLUTTER_VERSION: "3.24.5"
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+  NDK_VERSION: "r28c"
+  YLTS_VERSION: ${{ inputs.version || '1.0.5' }}
+
+jobs:
+  check-secrets:
+    name: server host and key
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require server host and key
+        env:
+          RUSTDESK_HOST: ${{ secrets.RUSTDESK_HOST }}
+          RUSTDESK_KEY: ${{ secrets.RUSTDESK_KEY }}
+        run: |
+          if [ -z "$RUSTDESK_HOST" ] || [ -z "$RUSTDESK_KEY" ]; then
+            echo "Set repository secrets RUSTDESK_HOST and RUSTDESK_KEY."
+            exit 1
+          fi
+          echo "Host is set. Key length: ${#RUSTDESK_KEY}"
+
+  generate-bridge:
+    needs: check-secrets
+    uses: ./.github/workflows/bridge.yml
+
+  android-arm64:
+    name: branded Android APKs
+    needs: [generate-bridge]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
+
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+               clang cmake curl gcc-multilib git g++ g++-multilib \
+               libclang-dev libunwind-dev llvm-dev nasm ninja-build \
+               openjdk-17-jdk-headless pkg-config wget python3-pip
+
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: recursive
+
+      - name: Require server host and key
+        env:
+          RUSTDESK_HOST: ${{ secrets.RUSTDESK_HOST }}
+          RUSTDESK_KEY: ${{ secrets.RUSTDESK_KEY }}
+        run: |
+          if [ -z "$RUSTDESK_HOST" ] || [ -z "$RUSTDESK_KEY" ]; then
+            echo "Set repository secrets RUSTDESK_HOST and RUSTDESK_KEY."
+            exit 1
+          fi
+          echo "RUSTDESK_HOST=$RUSTDESK_HOST" >> "$GITHUB_ENV"
+          echo "RUSTDESK_KEY<<EOF" >> "$GITHUB_ENV"
+          echo "$RUSTDESK_KEY" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
+
+      - name: Restore bridge files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bridge-artifact
+          path: ./
+
+      - name: Install flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: "stable"
+          flutter-version: ${{ env.ANDROID_FLUTTER_VERSION }}
+
+      - name: Patch flutter
+        run: |
+          cd $(dirname $(dirname $(which flutter)))
+          if [[ "3.24.5" == ${{ env.ANDROID_FLUTTER_VERSION }} ]]; then
+            git apply ${{ github.workspace }}/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff
+          fi
+
+      - name: Apply YLTS branding
+        run: |
+          python3 -m pip install pillow
+          python3 ylts/branding/make_icons.py
+          python3 ylts/branding/apply_branding.py --host "$RUSTDESK_HOST" --key "$RUSTDESK_KEY"
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          src = Image.open("ylts/branding/generated/icon-512.png").convert("RGBA")
+          base = Path("flutter/android/app/src/main/res")
+          for folder, px in {
+              "mipmap-mdpi": 48,
+              "mipmap-hdpi": 72,
+              "mipmap-xhdpi": 96,
+              "mipmap-xxhdpi": 144,
+              "mipmap-xxxhdpi": 192,
+          }.items():
+              im = src.resize((px, px), Image.Resampling.LANCZOS)
+              for name in ("ic_launcher.png", "ic_launcher_round.png", "ic_launcher_foreground.png", "ic_stat_logo.png"):
+                  im.save(base / folder / name)
+          print("android icons written")
+          PY
+
+      - uses: nttld/setup-ndk@ed92fe6cadad69be94a966a7ee3271275e62f779 # v1
+        id: setup-ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: true
+
+      - name: Remember NDK path
+        run: echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
+
+      - name: Setup vcpkg with Github Actions binary cache
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
+        with:
+          vcpkgDirectory: /opt/artifacts/vcpkg
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+          doNotCache: false
+
+      - name: Install vcpkg dependencies
+        run: |
+          if ! ./flutter/build_android_deps.sh arm64-v8a; then
+            find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
+              echo "$_1:"
+              echo "======"
+              cat "$_1"
+              echo "======"
+            done
+            exit 1
+          fi
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: "rustfmt"
+
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          prefix-key: ylts-android-arm64
+          key: aarch64-linux-android
+
+      - name: Build rustdesk lib
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          rustup target add aarch64-linux-android
+          cargo install cargo-ndk --version ${{ env.CARGO_NDK_VERSION }} --locked
+          ./flutter/ndk_arm64.sh
+          mkdir -p ./flutter/android/app/src/main/jniLibs/arm64-v8a
+          cp "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" \
+            ./flutter/android/app/src/main/jniLibs/arm64-v8a/
+          cp ./target/aarch64-linux-android/release/liblibrustdesk.so \
+            ./flutter/android/app/src/main/jniLibs/arm64-v8a/librustdesk.so
+
+      - name: Pack technician and host APKs
+        run: |
+          set -eu
+          python3 ylts/branding/apply_branding.py \
+            --host "$RUSTDESK_HOST" --key "$RUSTDESK_KEY" --variants-only ylts-variants
+          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+          export PATH="$JAVA_HOME/bin:$PATH"
+          sed -i "s/org.gradle.jvmargs=-Xmx1024M/org.gradle.jvmargs=-Xmx2g/g" ./flutter/android/gradle.properties
+          sed -i "s/signingConfigs.release/signingConfigs.debug/g" ./flutter/android/app/build.gradle
+          mkdir -p dist
+
+          pack_one() {
+            local json="$1"
+            local app_id="$2"
+            local label="$3"
+            local outfile="$4"
+            git checkout -- \
+              flutter/android/app/build.gradle \
+              flutter/android/app/src/main/AndroidManifest.xml \
+              flutter/android/app/src/main/res/values/strings.xml
+            sed -i "s/signingConfigs.release/signingConfigs.debug/g" ./flutter/android/app/build.gradle
+            sed -i "s/applicationId \"com.carriez.flutter_hbb\"/applicationId \"${app_id}\"/" \
+              flutter/android/app/build.gradle
+            sed -i "s/android:label=\"RustDesk\"/android:label=\"${label}\"/" \
+              flutter/android/app/src/main/AndroidManifest.xml
+            sed -i "s/android:label=\"RustDesk Input\"/android:label=\"${label} Input\"/" \
+              flutter/android/app/src/main/AndroidManifest.xml
+            sed -i "s/RustDesk/${label}/g" flutter/android/app/src/main/res/values/strings.xml
+            cp "ylts-variants/${json}" flutter/assets/ylts.json
+            pushd flutter
+            flutter clean
+            flutter build apk --release --target-platform android-arm64 --split-per-abi \
+              --build-name "${YLTS_VERSION}" --build-number 105
+            popd
+            mv flutter/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "dist/${outfile}"
+            echo "packed dist/${outfile}"
+          }
+
+          pack_one ylts-technician.json com.ylts.technician "YLTS Technician" YLTS-Technician.apk
+          pack_one ylts-host.json com.ylts.remotehost "YLTS Remote Host" YLTS-Remote-Host.apk
+
+      - name: Upload Android APKs
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ylts-android-${{ env.YLTS_VERSION }}
+          path: |
+            dist/YLTS-Technician.apk
+            dist/YLTS-Remote-Host.apk
+          if-no-files-found: error

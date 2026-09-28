@@ -174,6 +174,42 @@ reg add {subkey} /f""")
          "    };\n"
          "    match first {\n"
          "        Some(Ok(bytes)) => {")
+    # Android has no file beside the program. The app reads assets/ylts.json and
+    # passes that text into mainInit. A leading "{" is unsigned YLTS JSON;
+    # anything else stays the signed custom-client format.
+    edit(root / "src/flutter_ffi.rs",
+         """    if custom_client_config.is_empty() {
+        crate::load_custom_client();
+    } else {
+        crate::read_custom_client(custom_client_config);
+    }""",
+         """    if custom_client_config.is_empty() {
+        crate::load_custom_client();
+    } else if custom_client_config.trim_start().starts_with('{') {
+        match serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(
+            custom_client_config.trim(),
+        ) {
+            Ok(data) => crate::apply_custom_client_data(data),
+            Err(e) => log::error!("Invalid embedded YLTS client config: {e}"),
+        } // """ + MARK + """
+    } else {
+        crate::read_custom_client(custom_client_config);
+    }""")
+    edit(root / "flutter/lib/models/native_model.dart",
+         """      await _ffiBind.mainInit(
+        appDir: _dir,
+        customClientConfig: '',
+      );""",
+         """      var yltsConfig = '';
+      try {
+        yltsConfig = await rootBundle.loadString('assets/ylts.json');
+      } catch (e) {
+        debugPrint('no assets/ylts.json: $e');
+      }
+      await _ffiBind.mainInit(
+        appDir: _dir,
+        customClientConfig: yltsConfig, // """ + MARK + """
+      );""")
 
 
 def replace_icons(root: Path) -> None:

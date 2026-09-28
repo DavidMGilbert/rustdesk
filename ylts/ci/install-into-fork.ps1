@@ -27,8 +27,10 @@ if ($LASTEXITCODE -ge 8) {
 $workflows = Join-Path $fork ".github\workflows"
 New-Item -ItemType Directory -Force -Path $workflows | Out-Null
 Copy-Item (Join-Path $PSScriptRoot "ylts-windows.yml") (Join-Path $workflows "ylts-windows.yml") -Force
+Copy-Item (Join-Path $PSScriptRoot "ylts-android.yml") (Join-Path $workflows "ylts-android.yml") -Force
 
 Write-Host ""
 Write-Host "Package:  $dest"
 Write-Host "Workflow: $(Join-Path $workflows 'ylts-windows.yml')"
+Write-Host "Workflow: $(Join-Path $workflows 'ylts-android.yml')"
 Write-Host "Commit both, then set secrets RUSTDESK_HOST and RUSTDESK_KEY and run the YLTS Windows workflow."
